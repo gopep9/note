@@ -1091,6 +1091,7 @@ key是键值，flag是
 IPC_EXCL:与IPC_CREAT一同使用，表示如果要创建的消息队列已经存在，则返回错误。（除了要指定IPC_CREAT以外还要指定S_IRUSR和S_IWUSR等（或者是0777））
  IPC_NOWAIT:读写消息队列要求无法满足时，不阻塞。返回值： 调用成功返回队列标识符,否则返回-1
 若执行成功，msgget返回非负队列id，该值就可被用于其他3个消息队列函数
+flag还需要指定权限，例如IPC_CREAT|0777
 
 int msgctl(int msqid,int cmd,struct msqid_ds *buf);
 IPC_STAT 去除队列的msqid_ds结构放在buf指向的结构中
@@ -1118,10 +1119,12 @@ flag可以设置为IPC_NOWAIT
 调用函数semget来获得一个信号量id
 int semget(key_t key,int nsems,int flag); p456
 nsems是该集合中的信号量数。如果是创建新集合，则必须指定nsems。如果是引用现有集合，则将nsems指定为0，nsems是指定在一个信号量数组中药创建多少个信号量
+flag是IPC_CREAT,IPC_EXCL等
+flag还需要指定权限，例如IPC_CREAT|0777
 
 semctl函数包含了多种信号量操作
 int semctl(int semid,int semnum,int cmd,…);
-其中semid是信号量数组的句柄，semnum是信号量数组的下标，后面是指定的操作
+其中semid是信号量数组的句柄，semnum是信号量数组的下标(开始为0)，后面是指定的操作
 
 函数semop自动执行信号量集合上的操作数组
 int semop(int semid,struct sembuf semoparray[],size_t nops);
@@ -1135,6 +1138,8 @@ nops是sembuf数组的数量，因为这里只有1个sembuf，所以传1
 
 获得共享存储标识符
 int shmget(key_t key,size_t size,int flag); p460
+flag是IPC_CREAT,IPC_EXCL等
+flag还需要指定权限，例如IPC_CREAT|0777
 
 对共享存储段执行多种操作
 int shmctl(int shmid,int cmd,struct shmid_ds *buf);
