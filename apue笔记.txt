@@ -488,6 +488,14 @@ while(getppid()!=1)
 7种不同的exec函数可供使用
 execl，execv，execle，execve，execlp，execvp，fexecve
 
+execl 路径 多个参数 0
+execv 路径 参数数组
+execle 路径 多个参数 0 环境变量数组
+execve 路径 参数数组 环境变量数组
+execlp 文件名 多个参数 0
+execvp 文件名 参数数组
+fexecve 文件描述符 参数数组 环境变量
+
 当指定filename作为参数时
 如果filename中包含/，则就将其视为路径名
 否则就按PATH环境变量，在它所指定的各目录中搜寻可执行文件
@@ -661,7 +669,44 @@ abort	pthread_cancel			请求控制流的非正常退出 p318
 #include <pthread.h>
 int pthread_detach(pthread_t tid);分离线程 p318
 
+互斥量
+int pthread_mutex_init(pthread_mutex_t *restrict mutex,const pthread_mutexattr_t *restrict addt); 初始化
+int pthread_mutex_destroy(pthread_mutex_t *mutex);析构 p321
+int pthread_mutex_lock(pthread_mutex_t *mutex); 加锁
+int pthread_mutex_trylock(pthread_mutex_t *mutex); 尝试加锁，不阻塞
+int pthread_mutex_unlock(pthread_mutex_t *mutex); 解锁
+
+int pthread_mutex_timedlock(pthread_mutex_t *restrict mutex,const struct timespec *restrict tsptr); 限时加锁 p327
+
+读写锁
+int pthread_rwlock_init(pthread_rwlock_t *restrict rwlock,const pthread_rwlockattr_t *restrict attr); 初始化 p329
+int pthread_rwlock_destroy(pthread_rwlock_t *rwlock); 析构
+int pthread_rwlock_rdlock(pthread_rwlock_t *rwlock); 读锁
+int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock); 写锁
+int pthread_rwlock_unlock(pthread_rwlock_t *rwlock); 解锁
+
+int pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock); 尝试读锁
+int pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock); 尝试写锁
+
+int pthread_rwlock_timedrdlock(pthread_rwlock_t *restrict rwlock,const struct timespec *restrict tsptr); 限时读锁 p332
+int pthread_rwlock_timedwrlock(pthread_rwlock_t *restrict rwlock,const struct timespec *restrict tsptr); 限时写锁
+
 条件变量 p333
+int pthread_cond_init(pthread_cond_t *restrict cond,const pthread_condattr_t *restrict attr); 初始化
+int pthread_cond_destroy(pthread_cond_t *cond); 析构
+int pthread_cond_wait(pthread_cond_t *restrict cond,pthread_mutex_t *restrict mutex); 释放锁并且等待条件变量，之后加锁并且继续运行
+int pthread_cond_timedwait(pthread_cond_t *restrict cond,pthread_mutex_t *restrict mutex,const struct timespec *restrict tsptr); 指定时间等待条件变量
+
+int pthread_cond_signal(pthread_cond_t *cond); 至少唤醒一个等待条件的线程 p334
+int pthread_cond_broadcast(pthread_cond_t *cond); 唤醒所有线程
+
+自旋锁 p336
+int pthread_spin_init(pthread_spinlock_t *lock,int pshared);初始化
+int pthread_spin_destroy(pthread_spinlock_t *lock); 析构
+
+int pthread_spin_lock(pthread_spinlock_t *lock); 加锁
+int pthread_spin_trylock(pthread_spinlock_t *lock); 尝试加锁
+int pthread_spin_unlock(pthread_spinlock_t *lock); 解锁
 
 屏障 p336
 屏障（barrier）是用户协调多个线程并行工作的同步机制。屏障允许每个线程等待，直到所有的合作线程都到达某一点，然后从该点继续执行。（mac好像没有这个东西）
@@ -1121,6 +1166,8 @@ int semget(key_t key,int nsems,int flag); p456
 nsems是该集合中的信号量数。如果是创建新集合，则必须指定nsems。如果是引用现有集合，则将nsems指定为0，nsems是指定在一个信号量数组中药创建多少个信号量
 flag是IPC_CREAT,IPC_EXCL等
 flag还需要指定权限，例如IPC_CREAT|0777
+例如
+int semHandle=semget(ipcKey,1,IPC_CREAT|0777);
 
 semctl函数包含了多种信号量操作
 int semctl(int semid,int semnum,int cmd,…);
@@ -1135,6 +1182,12 @@ sembuf1.sem_op=-2;
 int result=semop(semhandle,&sembuf1,1);
 把0位的值减2
 nops是sembuf数组的数量，因为这里只有1个sembuf，所以传1
+
+　　SEM_UNDO
+
+　　当操作信号量(semop)时，sem_flg可以设置SEM_UNDO标识；SEM_UNDO用于将修改的信号量值在进程正常退出（调用exit退出或main执行完）或异常退出（如段异常、除0异常、收到KILL信号等）时归还给信号量。
+　　如信号量初始值是20，进程以SEM_UNDO方式操作信号量减2，减5，加1；在进程未退出时，信号量变成20-2-5+1=14；在进程退出时，将修改的值归还给信号量，信号量变成14+2+5-1=20。
+
 
 获得共享存储标识符
 int shmget(key_t key,size_t size,int flag); p460
@@ -1396,3 +1449,15 @@ socklen_t *restrict lenp); p503
 为帮助判断是否已经到达紧急标记，可以使用函数sockatmark
 int sockatmark(int sockfd); p505
 当下一个要读取的字节在紧急标志处时，sockatmark返回1
+
+struct hostent	*gethostbyname(const char *);
+可以根据一个网址获取hostent，之后可以使用memcpy(&ad.sin_addr, hp->h_addr, hp->h_length);设置sockaddr_in的sin_addr
+
+write可能要校验下返回值是否为写入的值
+在socket中，write满了会阻塞，不会发送数据，管道则不确定
+send感觉也是比较靠谱的写，在缓存满了的时候应该会阻塞
+管道的情况
+1.大于0而且等于写入的字数，全写了
+2.大于0但是少于写入的字数，写了一些
+3.小于0，出错
+没有等于0的情况
