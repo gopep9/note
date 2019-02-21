@@ -45,6 +45,15 @@ PATH环境变量中列出的目录。P87
 
 CreateProcess中的fdwCreate的CREATE_SUSPENDED标志让系统在创建新进程的同时挂起其主线程，这样父进程就可以修改子进程地址空间中的内存，更改子进程的主线程的优先级p89
 
+createprocess中的psaprocess和psathread中的bInheritHandles标记的是子进程的线程或者是进程句柄是否处于可以继承的状态，createprocess中的binheritHandles是标记子进程是否继承父进程的句柄
+
+PSECURITY_ATTRIBUTES的结构
+typedef struct _SECURITY_ATTRIBUTES{
+DWORD nLength;
+LPVOID lpSecurityDescriptor;
+BOOL bInheritHandle;
+}
+
 创建一个进程内核对象时，系统会为此对象分配一个独一无二的标识符，系统中没有别的进程内核对象会有相同的ID编号。这同样适用于线程内核对象。创建一个线程内核对象时，此对象会被分配一个独一无二的、系同级别的ID编号。进程ID和线程ID分享同一个号码池。P99
 
 可以使用GetCurrentProcessId来得到当前进程的ID，使用GetCurrentThreadId来获得当前正在运行的线程的ID。另外，还可以使用GetProcessId来获得与指定句柄对应的一个进程的ID，使用GetThreadId来获得与指定句柄对应的一个线程的ID。最后，根据一个线程句柄，我们可以调用GetProcessIdOffThread来获得其所在进程的ID。P99
@@ -635,14 +644,14 @@ PAGE_READWRITE是更改原始数据，PAGE_WRITECOPY是写时复制更改备份�
 
 地址空间映射的实例：区域p367
 其中E代表可执行，R代表可读，W代表可写，C是WRITECOPY(?)copy-on-write p370
-区域类型，他可能是表13-5所列出的4种类型之一：闲置、私有、印像、已映射
+区域类型，他可能是表13-5所列出的4种类型之一：闲置、私有、映像、已映射
 闲置：虚拟地址没有任何后备存储器。该地址空间尚未预订（已经预订而又没有调拨的话算什么？私有吗？好像就是私有，的确是私有）
 私有：以页交换文件为后备存储器
 映像：一开始以映像文件为后备存储器，但此后不一定以映像文件为后备存储器。假如写入的话可能写时复制会用页交换文件作为后备存储器
 已映射：一开始以内存映射文件为后备存储器，但此后不一定以内存映射文件为后备存储器。假如写入的话可能写时复制会用页交换文件作为后备存储器p372
 
 地址空间映射实例：区域和块p372
-块的类型：闲置、私有、已映射、映像、保留（保留就是已经保留还没有调拨）
+块的类型：闲置、私有、已映射、映像、保留（没有后备存储器）
 大部分情况下，一个区域中所有已调拨的块都以相同类型的物理存储器为后备存储器，但是也有可能不同p375
 （貌似区域的保护属性是块保护属性的或运算，经验证不对，块可以拥有区域没有的保护属性）p374
 
@@ -1320,3 +1329,10 @@ LONG WINAPI TopLevelUnhandledExceptionFilter(PEXCEPTION_POINTERS pExceptionInfo)
 2018年2月5日追记
 基地址和句柄不是同一个东西
 ReleaseSemaphore时假如超过最大限制会返回false
+
+openProcess里面的第二个参数DesiredAccess是希望的到的权限，可以是TOKEN_READ，TOKEN_WRITE什么的
+
+关于安全描述符security_attributes可以看微软的文档https://msdn.microsoft.com/zh-cn/56b5b350-f4b7-47af-b5f8-6a35f32c1009
+详细的用法可以看https://docs.microsoft.com/zh-cn/windows/desktop/SecAuthZ/creating-a-security-descriptor-for-a-new-object-in-c--
+
+对应的dwDesiredAccess是标识了用户需要的权限，详细的可以看https://docs.microsoft.com/zh-cn/windows/desktop/ProcThread/process-security-and-access-rights
